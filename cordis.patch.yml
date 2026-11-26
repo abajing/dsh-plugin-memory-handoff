@@ -1,0 +1,4 @@
+- insert:
+    - id: memory-handoff
+      name: dsh-plugin-memory-handoff
+      config: {}
