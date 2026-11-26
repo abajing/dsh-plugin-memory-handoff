@@ -46,7 +46,10 @@ const storePath = path.join(tmp, 'handoff.json')
 // ---- 1) 挂载
 const ctx = fakeCtx()
 apply(ctx, { storePath, maxHints: 3, recordShadowedRange: true })
-ok('apply 挂载不抛错', ctx.handlers.has('compaction/end') && ctx.handlers.has('session/start'))
+ok('apply 挂载不抛错',
+  ctx.handlers.has('compaction/end')
+  && ctx.handlers.has('turn/start')
+  && ctx.handlers.has('session/fork'))
 
 // ---- 2) 压缩事件写盘
 ctx.emit('compaction/end', {
@@ -76,10 +79,23 @@ ok('提示总数正确', line.includes('还有 2 件没做'), line)
 // ---- 4) 空 store 不提示
 ok('空清单不产生提示', hintLine(emptyStore(), 3) === '')
 
-// ---- 5) session/start 只打日志，不重复写盘
+// ---- 5) turn/start 每会话只提示一次；session/fork 之后重新提示
+writeStore(storePath, s)
+const ctx2 = fakeCtx()
+apply(ctx2, { storePath, maxHints: 3, recordShadowedRange: true })
 const before = fs.readFileSync(storePath, 'utf8')
-ctx.emit('session/start', {})
-ok('session/start 不改文件', fs.readFileSync(storePath, 'utf8') === before)
+const countHints = () => ctx2.logs.filter((l) => l.includes('还有 2 件没做')).length
+
+ctx2.emit('turn/start', {})
+ctx2.emit('turn/start', {})
+ctx2.emit('turn/start', {})
+ok('turn/start 只提示一次', countHints() === 1, `hints=${countHints()}`)
+
+ctx2.emit('session/fork', {})
+ctx2.emit('turn/start', {})
+ok('fork 后重新提示一次', countHints() === 2, `hints=${countHints()}`)
+
+ok('turn/start 不改文件', fs.readFileSync(storePath, 'utf8') === before)
 
 // ---- 6) 写读往返
 writeStore(storePath, s)

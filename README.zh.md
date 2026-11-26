@@ -86,7 +86,8 @@ dsh plugin add dsh-plugin-memory-handoff
 
 ## 实现要点（对着上游代码确认过）
 
-- **压缩事件**：`packages/compaction/compaction/src/types.ts` 声明 `compaction/start` 与 `compaction/end`，注释写明这对事件是 contractual；`compaction/end` 带 `summary`、`shadowedRange`、`shadowedSeqs`。
+- **压缩事件**：`compaction/start` / `compaction/end` —— 已在本机运行时（`@deepseek-ai/dsh-desktop-runtime 0.2.1-rc.5`）实测存在，声明在 `packages/compaction/compaction/src/types.ts`，注释写明这对事件是 contractual；`compaction/end` 带 `summary`、`shadowedRange`、`shadowedSeqs`。
+- **开场钩子**：本运行时里**没有** `session/start`。插件改为监听 `turn/start`，每个会话只在第一轮提示一次，`session/fork` 之后重置。
 - **压缩阈值**：`packages/compaction/compaction-basic` 文档给出 `min(W×0.8, W−O−65536)`，可配 `thresholdRatio` / `headroomTokens` / `retainTokens`。
 - **分叉契约**：`packages/api/session-controller/src/types.ts` 的 `SessionForkRequest { sessionId, atSeq?, allowMigration? }`，实现见 `commands.ts` 的 `fork()`。
 

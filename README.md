@@ -83,7 +83,8 @@ Or mount it explicitly in your profile's `cordis.patch.yml`:
 
 ## Implementation notes (verified against upstream source)
 
-- **Compaction events**: `packages/compaction/compaction/src/types.ts` declares `compaction/start` and `compaction/end`; the comments mark this pair as contractual. `compaction/end` carries `summary`, `shadowedRange`, `shadowedSeqs`.
+- **Compaction events**: `compaction/start` and `compaction/end` — verified present in the installed runtime (`@deepseek-ai/dsh-desktop-runtime 0.2.1-rc.5`), and declared in `packages/compaction/compaction/src/types.ts` where the comments mark the pair as contractual. `compaction/end` carries `summary`, `shadowedRange`, `shadowedSeqs`.
+- **Session-start hook**: `session/start` does **not** exist in this runtime. The plugin listens on `turn/start` and fires its one-line hint only once per session, resetting after `session/fork`.
 - **Compaction threshold**: `packages/compaction/compaction-basic` documents `min(W×0.8, W−O−65536)`, configurable via `thresholdRatio` / `headroomTokens` / `retainTokens`.
 - **Fork contract**: `packages/api/session-controller/src/types.ts` defines `SessionForkRequest { sessionId, atSeq?, allowMigration? }`, implemented by `fork()` in `commands.ts`.
 

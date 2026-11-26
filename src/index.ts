@@ -126,14 +126,28 @@ export function apply(ctx: Context, config: Config): void {
     ctx.logger.info(`[memory-handoff] 压缩已存档 -> ${storePath}`)
   })
 
-  // 会话开场：只提示一次未完成项（由上层决定把 hint 注入到哪里）
-  const onStart = ctx.on.bind(ctx) as unknown as (
+  // 每轮开始：只在「本会话第一次」提示一次，之后不再念。
+  // 事件名用 turn/start —— 在本机 runtime（dsh-desktop-runtime 0.2.1-rc.5）里
+  // 实测存在；session/start 不存在（真实的是 session/create、session/created）。
+  let hinted = false
+  const onTurn = ctx.on.bind(ctx) as unknown as (
     event: string,
     listener: () => void,
   ) => void
-  onStart('session/start', () => {
+  onTurn('turn/start', () => {
+    if (hinted) return
+    hinted = true
     const line = hintLine(store, config.maxHints)
     if (line) ctx.logger.info(`[memory-handoff] ${line}`)
+  })
+
+  // 分叉：本机 runtime 有 session/fork 事件，分叉后要重新给一次提示
+  const onFork = ctx.on.bind(ctx) as unknown as (
+    event: string,
+    listener: () => void,
+  ) => void
+  onFork('session/fork', () => {
+    hinted = false
   })
 
   ctx.logger.info(`[memory-handoff] 已挂载，store=${storePath}`)
